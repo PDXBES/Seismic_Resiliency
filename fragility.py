@@ -10,7 +10,7 @@
 # see work request #8071, previous work #s 8010 and 6255
 #-------------------------------------------------------------------------------
 
-import arcpy, os, math, datetime, xlrd
+import arcpy, os, math, datetime, xlrd, sys
 
 arcpy.env.overwriteOutput = True
 
