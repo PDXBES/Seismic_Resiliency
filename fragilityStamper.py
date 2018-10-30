@@ -12,9 +12,15 @@
 #-------------------------------------------------------------------------------
 
 import arcpy, os
+from util import CopyFieldFromFeature
+from util import status
+from util import getField_Names
 
 # core and MacJac basenames
-city_basename = "fragility_combo_"
+city_basename = "fragility_city_"
+city_date = "20180213" # SUBJECT TO CHANGE IF FULL PROCESS IS RERUN
+suffix = "_compiled"
+
 MJA_basename = "fragility_MJA_backbone_"
 
 # file date stamps
@@ -22,33 +28,38 @@ MJA_basename = "fragility_MJA_backbone_"
 city_date = "20180213"
 MJA_date = "20180207"
 
-output_gdb = r"\\besfile1\Resiliency_Plan\GIS\pgdb\Seismic_Analysis.gdb"
-fragility_combo = os.path.join(output_gdb, city_basename + city_date)
-MJA_backbone = os.path.join(output_gdb, MJA_basename + MJA_date)
-
-# PUT THIS IN A UTIL MODULE!
-def CopyFieldFromFeature(sourceFC,sourceID,sourceField,targetFC,targetID,targetField):
-#copy value from a field in one feature class to another through an ID field link - used in place of a table join and field populate (faster)
-
-    values={}
-    with arcpy.da.SearchCursor(sourceFC,[sourceID,sourceField]) as cursor:
-        for row in cursor:
-            values[row[0]] = row[1]
-
-    with arcpy.da.UpdateCursor(targetFC,[targetID,targetField]) as cursor:
-        for row in cursor:
-            if row[0] in values:
-                if values[row[0]] != None:
-                    row[1] = values[row[0]]
-            cursor.updateRow(row)
-    status("  Done")
+resiliency_gdb = r"\\besfile1\Resiliency_Plan\GIS\pgdb\Seismic_Analysis.gdb"
+fragility_compiled = os.path.join(resiliency_gdb, city_basename + city_date + suffix)
+MJA_backbone = os.path.join(resiliency_gdb, MJA_basename + MJA_date)
 
 fieldlist = (['PGV', 'Liq_Prob', 'PGD_LS', 'PGD_Set', 'PGD_Liq_Tot', 'PGD_Landslide',
-'K1', 'K2_Don', 'RR_Don_PGV', 'RR_Don_PGD_Liq', 'RR_Don_PGD_Landslide', 'RR_Don_FIN', 'RR_Don_breaknum', 'Decision'])
+'K1', 'K2_Don', 'RR_Don_PGV', 'RR_Don_PGD_Liq', 'RR_Don_PGD_Landslide', 'RR_Don_FIN', 'RR_Don_breaknum'])
 
-ID_field = "GLOBALID"
+status("STARTING PROCESS TO ADD MACJAC FRAGILITY RESULT")
+
+# create dict with {original field: MJ field}
+fieldlist_MJ = {}
+
 for field in fieldlist:
-     CopyFieldFromFeature(MJA_backbone, ID_field, field, fragility_combo, ID_field, field)
+    fieldlist_MJ[field] = "MJ_" + field
 
+status("Adding and populating 'MJ_' fields")
+# add MJ fields and populate values from MacJac fragility result
+ID_field = "GLOBALID"
+field_names = getField_Names(fragility_compiled)
+for name in fieldlist_MJ.keys():
+    if fieldlist_MJ[name] not in field_names:
+        if name == "Liq_Prob":
+            status(" - adding " + fieldlist_MJ[name])
+            arcpy.AddField_management(fragility_compiled, fieldlist_MJ[name], "TEXT")
+        else:
+            status(" - adding " + fieldlist_MJ[name])
+            arcpy.AddField_management(fragility_compiled, fieldlist_MJ[name], "DOUBLE")
+    else:
+        status(fieldlist_MJ[name] + " already exists - no field added")
 
+    status( "-- calculating " + fieldlist_MJ[name])
+    CopyFieldFromFeature(MJA_backbone, ID_field, name, fragility_compiled, ID_field, fieldlist_MJ[name])
+
+status("PROCESS COMPLETE")
 

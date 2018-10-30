@@ -10,7 +10,11 @@
 # see work request #8071, previous work #s 8010 and 6255
 #-------------------------------------------------------------------------------
 
-import arcpy, os, math, datetime, xlrd, sys
+import arcpy, os, math, datetime, xlrd
+from util import status
+from util import CopyFieldFromFeature
+from util import calcField_fromOverlap
+from util import updateDecisionField
 
 arcpy.env.overwriteOutput = True
 
@@ -20,14 +24,6 @@ sde_egh_public = r"\\oberon\grp117\DAshney\Scripts\connections\egh_public on gis
 # INPUTS
 # DOGAMI = r"\\besfile1\gis3\DataX\DOGAMI\Oregon_Resilience_Plan\extracted" # SHOULD DATA HERE BE COPIED TO SAME AS PWB LOCATION?
 PWB = r"\\besfile1\Resiliency_Plan\GIS\pgdb\Snapshot_05262016.gdb"
-
-"""
-# NO LONGER USED
-# DOGAMI sources - these are all rasters
-DOG_Liq = os.path.join(DOGAMI,"ORP_Liquefaction_PGD_GIS.img") # in previous work for Greg was liquefaction
-DOG_LS = os.path.join(DOGAMI,"ORP_LS_PGD_GIS_Rev1.img") # in previous work for Greg was landslide/ perm ground def
-DOG_PGV = os.path.join(DOGAMI, "ORP_PGA_g.img") # in previous work for Greg was called PGA (for some reason, = ?)
-"""
 
 DOG_PGV = r"\\cgisfile\public\water\Seismic Hazard Study\SupportingData\ORP_GroundMotionAndFailure.gdb\Oregon_M_9_Scenario_Site_PGV"
 
@@ -47,29 +43,11 @@ materialPatch_xls = r"\\BESFile1\Resiliency_Plan\03.1 Project Work\Seismic\Conve
 
 # EQUATIONS
 
-def Liq_Calc(K, D, PGD): # D = pipe diameter
-    return K * (1.092/(1+7.408 * pow(math.e, (-0.6886 * D)))) * (pow(PGD, 0.319))
-
-def LS_Calc(K, mean_depth, PGD): # H = pipe depth (mean depth is used in place of H here)
-     return (K * 1.06 * (pow(PGD, 0.319))) * (1.3922/(1 + pow(math.e, -0.94621 + 0.10201 * mean_depth)))
-
-def PGV_Calc(K, PGV):
-     return K * 0.00475 * PGV
-
 def RR_waveprop_Calc(K1, PGV):
      return K1 * 0.00187 * PGV
 
 def RR_PGD_Calc(K2, PGD):
      return K2 * 1.06 * pow(PGD, 0.319)
-
-def rateCalc(minval, maxval, rate): # rate needs 0.8 for 80% eg
-    return ((maxval - minval) * rate) + minval
-
-# Decision Logic constants
-pipe_depth = 30
-sum_deformation = 6
-RR1 = 1
-RR2 = 4
 
 # MATERIAL VALUE PATCH
 # creates a lookup dictionary from the Nulls spreadsheet
@@ -117,78 +95,14 @@ K1_patch = ({0.8:("brick_tunnel_liner_plate", "brick_conc_liner", "CONSTN", "VAR
 K2_patch = ({0.8:("brick_tunnel_liner_plate", "CONSTN", "VARIES", "UNSPEC", "stub", "STUB", "STUB _PLUG",
 "STUB&PLUG", "STUB & PLUG", "STUB]", "WOOD", "WOOD FLUME"), 0.75:("brick_fbr_liner"), 1:("brick_conc_liner")})
 
-# FUNCTIONS
-
-def status(msg):
-    print msg + " : " + datetime.datetime.now().strftime('%x %X')
-
-def CopyFieldFromFeature(sourceFC,sourceID,sourceField,targetFC,targetID,targetField):
-#copy value from a field in one feature class to another through an ID field link - used in place of a table join and field populate (faster)
-
-    values={}
-    with arcpy.da.SearchCursor(sourceFC,[sourceID,sourceField]) as cursor:
-        for row in cursor:
-            values[row[0]] = row[1]
-
-    with arcpy.da.UpdateCursor(targetFC,[targetID,targetField]) as cursor:
-        for row in cursor:
-            if row[0] in values:
-                if values[row[0]] != None:
-                    row[1] = values[row[0]]
-            cursor.updateRow(row)
-    status("  Done")
-
-def calcField_fromOverlap(targetFC,targetField,ID,overlapFC,overlapField):
-    # fills field with values from another field where overlap exists
-    # also aggregates values for you - this accounts for where intersect occurs across geometry with different values
-
-    sect_result = arcpy.Intersect_analysis([targetFC,overlapFC],"in_memory\sect_result","NO_FID","","LINE")
-    agg_in = overlapField + " MAX"
-    agg_out = "MAX_" + overlapField
-    result = arcpy.Dissolve_management(sect_result, "in_memory\diss_result", ID, agg_in)
-    values={}
-    with arcpy.da.SearchCursor(result,[ID,agg_out]) as cursor:
-        for row in cursor:
-            if row[0] != None:
-                values[row[0]] = row[1]
-
-    with arcpy.da.UpdateCursor(targetFC, [ID, targetField]) as cursor:
-        for row in cursor:
-            if row[0] in values:
-                if values[row[0]] != None:
-                    row[1] = values[row[0]]
-            cursor.updateRow(row)
-    status("  Done")
 
 # CORE
 
 status("STARTING FRAGILITY EXTRACTION")
 
-# subset collection lines to pipes
-# FIRST ONE HERE IS FOR ALL PIPES, SECOND FOR LARGE DIAMETER PIPES
+# subset collection lines to pipes only
 status("Subsetting collection system to pipes only")
 pipes = arcpy.MakeFeatureLayer_management(collection_lines, "pipes", "LAYER_GROUP in ( 'SEWER PIPES' , 'STORM PIPES' )")
-
-#status("Subsetting collection system to Large Diameter pipes only")
-# THIS (COMMENTED OUT BELOW) SUBSETS THE COLLECTION SYSTEM TO THE BACKBONE ONLY - WE ARE NOT USING THIS BUT RUNNING FOR THE WHOLE NETWORK
-#pipes = arcpy.MakeFeatureLayer_management(collection_lines, "pipes", "COMPKEY in (122413,122418,122420,122437,122450,122453,122456,122459,
-# 122469,122485,122486,122487,122489,122497,122498,122499,122500,122509,122510,122514,122636,127322,127446,127447,127448,127449,127450,127451,
-# 127452,127453,127461,127464,127476,127477,127512,127514,127515,127517,127522,127523,127524,127525,127526,127527,127528,127529,127530,127532,
-# 127535,127539,127540,127546,127559,127602,127603,127613,127631,127635,127641,130891,131206,131244,131251,131259,131266,131268,131270,131335,
-# 131336,131337,131338,131339,131346,131347,131464,131468,131469,131541,131562,131564,131565,131586,131602,131699,131741,131763,386617,401331,
-# 401332,408485,411855,420113,420124,420144,427632,434753,443054,450598,490271,490283,490288,490290,490292,490296,490298,490300,490306,490314,
-# 490320,490321,502875,490269,490267,490265,490263,484272,140112,127695,127698,127710,127729,127741,127790,127837,127855,127870,127880,127881,
-# 127882,127897,127902,127947,127948,127949,127950,127951,127952,127966,127969,131896,131900,131905,131984,131985,131986,131987,132035,132036,
-# 132037,132045,132047,132048,132049,132051,132066,132067,132092,132098,132106,132116,132117,132118,132159,132160,132243,132244,132245,132246,
-# 132247,132248,132403,132404,132405,132406,132409,132436,135029,135030,135032,135230,135231,135232,135294,135303,135304,135313,135326,135327,
-# 135354,135362,135363,135364,135365,135366,135367,135368,135385,135387,135388,135404,135407,135414,135460,135480,135481,135482,135483,135491,
-# 135497,135501,135571,135572,135659,135660,135662,135663,135664,135665,135673,135674,135675,135677,135678,135687,135688,135705,135706,135708,
-# 135723,135736,135739,135740,135741,135742,135743,135744,135746,135751,135752,135754,135755,135759,135761,135771,135780,135781,135787,135792,
-# 135793,135794,135860,135866,135870,139662,140265,403425,411051,414922,421121,424576,425750,435009,448045,476823,484609,490343,490349,490351,
-# 490356,490358,156314,156315,156213,156210,156240,156243,156296,156300,156304,491872,156312,487429,487427,487425,487423,487410,491973,487396,
-# 487391,151327,151353,151312,151314,151305,151340,151341,151342,151343,151344,147312,147277,147278,147279,147280,490820,490819,490817,490812,
-# 490809,490806,490799,418594,407110,146927,146930,146931,146935,146932,146936,147017,146933,146956,146955,146952,147145,147146,147297,147298,
-# 147147,147155,147141,147299,147193,147303,147305,490558,490557,490536,490534,490532,490530,490528,487750,487747,487743,487740,487736,487730,12763)")
 
 print str(arcpy.GetCount_management(pipes)) + " pipes"
 
@@ -424,113 +338,9 @@ with arcpy.da.UpdateCursor(fragility_pipes, ["FRM_DEPTH", "TO_DEPTH", "mean_dept
                 row[2] = 0
             cursor.updateRow(row)
 
-# Decision Logic piece for Rehab/ Replacement planning - CHECK THIS!
-status("Creating and filling Decision field")
-val1 = "Monitor"
-val2 = "Whole Pipe"
-val3 = "Spot Line"
-with arcpy.da.UpdateCursor(fragility_pipes, ["mean_depth", "PGD_Liq_Tot", "RR_Don_FIN", "PGD_Set", "Decision"]) as cursor:
-    for row in cursor:
-        if row[0] > pipe_depth:
-            row[4] = val1
-        else:
-            if row[1] >= sum_deformation:
-                row[4] = val2
-            else:
-                if row[3] <> 0:
-                    if row[2] >= RR1:
-                        row[4] = val2
-                    else:
-                        row[4] = val3
-                else:
-                    if row[2] >= RR2:
-                        row[4] = val2
-                    else:
-                        row[4] = val1
-        cursor.updateRow(row)
+status("Updating Decision field")
+updateDecisionField(fragility_pipes, "PGD_Liq_Tot", "RR_Don_FIN", "PGD_Set")
 
-
-"""
-# GS components --------------------------------------------------------------------------------------------
-
-# calculate K values using materials and dictionarys
-# NOTE - NO K VAL DICT PATCH FOR GS (DCA - 1/31/2018)
-status("Filling K2_GS")
-with arcpy.da.UpdateCursor(fragility_pipes, ["MATERIAL", "K2_GS"]) as cursor:
-        for row in cursor:
-            if row[0] is not None:
-                for key, value in SavageK2.iteritems():
-                    if row[0] in value:
-                        row[1] = key
-            cursor.updateRow(row)
-
-# run Greg's formulas
-status("Calculating RR_GS_PGV")
-with arcpy.da.UpdateCursor(fragility_pipes, ["RR_GS_PGV", "K1", "PGV"]) as cursor:
-        for row in cursor:
-            if row[1] is not None and row[2] is not None:
-                row[0] = PGV_Calc(row[1], row[2])
-            cursor.updateRow(row)
-
-status("Calculating RR_GS_PGD_Liq")
-with arcpy.da.UpdateCursor(fragility_pipes, ["RR_GS_PGD_Liq", "K2_GS", "PIPESIZE", "PGD_Liq_Tot"]) as cursor:
-        for row in cursor:
-            if row[1] is not None and row[2] is not None and row[3] is not None:
-                row[0] = Liq_Calc(row[1], row[2], row[3])
-            cursor.updateRow(row)
-
-status("Calculating RR_GS_PGD_Landslide")
-with arcpy.da.UpdateCursor(fragility_pipes, ["RR_GS_PGD_Landslide", "K2_GS", "mean_depth", "PGD_Landslide"]) as cursor:
-        for row in cursor:
-            if row[1] is not None and row[2] is not None and row[3] is not None:
-                row[0] = LS_Calc(row[1], row[2], row[3])
-            cursor.updateRow(row)
-
-# final calculations
-status("Calculating RR_GS_FIN") # take whichever value is highest or which has a value if the others are Null
-with arcpy.da.UpdateCursor(fragility_pipes, ["RR_GS_FIN", "RR_GS_PGD_Liq", "RR_GS_PGD_Landslide", "RR_GS_PGV"]) as cursor:
-        for row in cursor:
-            if row[1] is not None and row[2] is None and row[3] is None:
-                row[0] = row[1]
-            elif row[1] is None and row[2] is not None and row[3] is None:
-                row[0] = row[2]
-            elif row[1] is None and row[2] is None and row[3] is not None:
-                row[0] = row[3]
-
-            elif row[1] is not None and row[2] is not None and row[3] is None and row[1] > row[2]:
-                row[0] = row[1]
-            elif row[1] is not None and row[2] is not None and row[3] is None and row[1] < row[2]:
-                row[0] = row[2]
-
-            elif row[1] is not None and row[2] is None and row[3] is not None and row[1] > row[3]:
-                row[0] = row[1]
-            elif row[1] is not None and row[2] is None and row[3] is not None and row[1] < row[3]:
-                row[0] = row[3]
-
-            elif row[1] is None and row[2] is not None and row[3] is not None and row[2] > row[3]:
-                row[0] = row[2]
-            elif row[1] is None and row[2] is not None and row[3] is not None and row[2] < row[3]:
-                row[0] = row[3]
-
-            elif row[1] is not None and row[2] is not None and row [3] is not None and row[1] > row[2] and row[1] > row[3]:
-               row[0] = row[1]
-            elif row[1] is not None and row[2] is not None and row [3] is not None and row[2] > row[1] and row[2] > row[3]:
-               row[0] = row[2]
-            elif row[1] is not None and row[2] is not None and row [3] is not None and row[3] > row[1] and row[3] > row[1]:
-               row[0] = row[3]
-            cursor.updateRow(row)
-
-status("Calculating RR_GS_breaknum")
-with arcpy.da.UpdateCursor(fragility_pipes, ["RR_GS_breaknum", "SRVY_LEN", "RR_GS_FIN", "Shape_Length"]) as cursor:
-        for row in cursor:
-            if row[2] is not None:
-                if row[1] is not None:
-                    row[0] = (row[1] / 1000) * row[2]
-                else:
-                    row[0] = (row[3] / 1000) * row[2]
-            cursor.updateRow(row)
-"""
-# -------------------------------------------------------------------------------------------------------------------
 
 status("FRAGILITY EXTRACTION COMPLETE")
 print "Output saved to: " + full_outfile

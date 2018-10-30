@@ -13,6 +13,7 @@
 #-------------------------------------------------------------------------------
 
 import arcpy, os, math, datetime, xlrd
+from util import updateDecisionField
 
 arcpy.env.overwriteOutput = True
 
@@ -44,12 +45,6 @@ def rateCalc(minval, maxval, rate): # rate needs 0.8 for 80% eg
     return ((maxval - minval) * rate) + minval
 
 rate = 0.8 # value to assume within MacJac ranges
-
-# Decision Logic constants
-pipe_depth = 30
-sum_deformation = 6
-RR1 = 1
-RR2 = 4
 
 # MATERIAL VALUE PATCH
 # creates a lookup dictionary from the Nulls spreadsheet
@@ -384,30 +379,9 @@ with arcpy.da.UpdateCursor(fragility_pipes, ["FRM_DEPTH", "TO_DEPTH", "mean_dept
                 row[2] = 0
             cursor.updateRow(row)
 
-# Decision Logic piece for Rehab/ Replacement planning - CHECK THIS!
-status("Creating and filling Decision field")
-val1 = "Monitor"
-val2 = "Whole Pipe"
-val3 = "Spot Line"
-with arcpy.da.UpdateCursor(fragility_pipes, ["mean_depth", "PGD_Liq_Tot", "RR_Don_FIN", "PGD_Set", "Decision"]) as cursor:
-    for row in cursor:
-        if row[0] > pipe_depth:
-            row[4] = val1
-        else:
-            if row[1] >= sum_deformation:
-                row[4] = val2
-            else:
-                if row[3] <> 0:
-                    if row[2] >= RR1:
-                        row[4] = val2
-                    else:
-                        row[4] = val3
-                else:
-                    if row[2] >= RR2:
-                        row[4] = val2
-                    else:
-                        row[4] = val1
-        cursor.updateRow(row)
+status("Updating Decision field")
+updateDecisionField(fragility_pipes)
+
 
 
 # -------------------------------------------------------------------------------------------------------------------
