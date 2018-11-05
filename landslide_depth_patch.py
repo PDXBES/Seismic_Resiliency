@@ -13,6 +13,8 @@
 # to determine risk.
 #-------------------------------------------------------------------------------
 
+
+
 from util import status
 from util import getField_Names
 import arcpy, os
@@ -24,6 +26,7 @@ fragility_city = os.path.join(resiliency_gdb, city_basename + city_date)
 
 status("STARTING PROCESS TO CREATE LANDSLIDE/ DEPTH FRAGILITY RESULT")
 
+# TODO - make copy its own separate function
 copy_path = fragility_city + "_compiled" # output feature class
 if arcpy.Exists(copy_path) == False:
     status("Making copy of fragility result")

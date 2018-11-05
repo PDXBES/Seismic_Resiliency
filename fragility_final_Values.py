@@ -46,7 +46,7 @@ for name in fieldlist_FinalVal.keys():
         status(" - " + fieldlist_FinalVal[name] + " already exists - no field added")
 
 
-prefixes = ("wLandslide_", "MJ_", "Final_")
+prefixes = ("wLandslide_", "MJ_wLandslide_", "MJ_", "Final_")
 newlist = []
 fulllist = []
 for field in fieldlist:
@@ -63,19 +63,24 @@ for field in fieldlist:
         newlist = []
 
 
+# priority order: MJ_wLandslide_, MJ_, wLandslide_, WB
+# OR : MJ_, WB (if no depth/landslide patch was done for that field ie not RR_Don_FIN or RR_Don_breaknum)
+
 status("Populating 'Final_' fields using field prioritization")
 for target_fields in fulllist:
     with arcpy.da.UpdateCursor(fragility_compiled, target_fields) as cursor:
         for row in cursor:
-            if len(cursor.fields) == 4:
-                status(" - Populating values for " + target_fields[3])
+            if len(cursor.fields) == 5:
+                status(" - Populating values for " + target_fields[4])
                 for row in cursor:
                     if row[2] != None:
-                        row[3] = row[2]
-                    elif row[2] == None and row[1] != None:
-                        row[3]= row[1]
+                        row[4] = row[2]
+                    elif row[2] == None and row[3] != None:
+                        row[4] = row[3]
+                    elif row[2] == None and row[3] == None and row[1] != None:
+                        row[4]= row[1]
                     else:
-                        row[3] = row[0]
+                        row[4] = row[0]
                     cursor.updateRow(row)
             elif len(cursor.fields) == 3:
                 status(" - Populating values for " + target_fields[2])
@@ -85,7 +90,6 @@ for target_fields in fulllist:
                     else:
                         row[2] = row[0]
                     cursor.updateRow(row)
-
 
 
 status("Populating 'Decision' field")
