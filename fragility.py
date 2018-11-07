@@ -15,11 +15,9 @@ from util import status
 from util import CopyFieldFromFeature
 from util import calcField_fromOverlap
 from util import updateDecisionField
+import config
 
 arcpy.env.overwriteOutput = True
-
-# CONNECTIONS
-sde_egh_public = r"\\oberon\grp117\DAshney\Scripts\connections\egh_public on gisdb1.rose.portland.local.sde"
 
 # INPUTS
 # DOGAMI = r"\\besfile1\gis3\DataX\DOGAMI\Oregon_Resilience_Plan\extracted" # SHOULD DATA HERE BE COPIED TO SAME AS PWB LOCATION?
@@ -33,68 +31,12 @@ PWB_LS = os.path.join(PWB, "Seismic_Study_Deliverables_2016_Lateral_Spread")
 PWB_LD = os.path.join(PWB, "Seismic_Study_Deliverables_2016_Landslide_Deformation")
 PWB_GS = os.path.join(PWB, "Seismic_Study_Deliverables_2016_Ground_Settlement")
 
-collection_lines = sde_egh_public + r"\EGH_PUBLIC.ARCMAP_ADMIN.collection_lines_bes_pdx"
-
-# OUTPUT
-output_gdb = r"\\besfile1\Resiliency_Plan\GIS\pgdb\Seismic_Analysis.gdb"
-
-# spreadsheet created by Joe Hoffman
-materialPatch_xls = r"\\BESFile1\Resiliency_Plan\03.1 Project Work\Seismic\Conveyance Spine Repair Costs\Assumed Material.xlsx"
-
-# EQUATIONS
-
-def RR_waveprop_Calc(K1, PGV):
-     return K1 * 0.00187 * PGV
-
-def RR_PGD_Calc(K2, PGD):
-     return K2 * 1.06 * pow(PGD, 0.319)
 
 # MATERIAL VALUE PATCH
 # creates a lookup dictionary from the Nulls spreadsheet
 # use to fill the MATERIAL field for the records that match the key val Compkeys
 # use "if compkey = x and origval = y then set = to newval - this serves as a check that you're not overwriting valid values
-patch_dict = {}
-wb = xlrd.open_workbook(materialPatch_xls)
-sh = wb.sheet_by_index(0)
-for item in range(sh.nrows):
-    mylist = []
-    key = sh.cell(item,0).value
-    origval = sh.cell(item,1).value
-    newval = sh.cell(item,2).value
-    mylist.append(origval)
-    mylist.append(newval)
-    patch_dict[key] = mylist
-del patch_dict['COMPKEY'] # removes header
-
-# K VALUES
-"""
-SavageK2 = ({0.15:("H.D.P.","HDP","HDPE","ADS","SLIP"), 0.43:("D.I.P.","DIP","DI","D. TIL","D.TIL"),0.62:("STEEL"),
-0.75:("RCP","RCSP","R.C.S.","MON","MON.","MON.C","MON. C","MCP","CIPP","MONO","MONO.","MONOLI","MONO.C","MONO-C","PRECAS","REINF.","PS","RMCP","CONBRK"),
-0.8:("CSP","C.S.P.","CP","C.P.","CONC","CONC.","CON","CON.","CONCRE","CCP","P.V.C.","PVC"),0.83:("CMP","COR.S","COR.I.","CORR."),
-0.88:("ASBEST","ASBES","ABS","ACP","ACPP","A.C.P.","FRP","CIP","C.I.P.","C.I.","CI","IRON"),0.92:("NCP","NCP OR","Wood"),
-0.94:("CLAY","CT","TILE","V.S.P.","VSP","VCP","T.C.P.","TCP"),0.95:("BRCK","BRICK","BRCK.","BRK","BRK.","B","BR.","BRKSTN","B.&S.")})
-"""
-
-DBBK1 = ({0.15:("H.D.P.","HDP","HDPE","ADS","STEEL","SLIP"), 0.5:("D.I.P.","DIP","DI","D. TIL","D.TIL","Steel","ASBEST","ASBES","ABS","ACP","ACPP","A.C.P.","FRP"),
-0.8:("RCP","RCSP","R.C.S.","MON","MON.","MON.C","MON. C","MCP","CIPP","MONO","MONO.","MONOLI","MONO.C","MONO-C","PRECAS","REINF.","PS","RMCP","CSP",
-"C.S.P.","CP","C.P.","CONC","CONC.","CON","CON.","CONCRE","CCP","CONBRK"),0.6:("P.V.C.","PVC"),0.3:("CMP","COR.S","COR.I.","CORR."),
-1:("CIP","C.I.P.","C.I.","CI","IRON"),1.3:("NCP","NCP OR"),0.7:("Wood","CLAY","CT","TILE",
-"V.S.P.","VSP","VCP","T.C.P.","TCP","BRCK","BRICK","BRCK.","BRK","BRK.","B","BR.","BRKSTN","B.&S.")})
-
-DBBK2 = ({0.15:("H.D.P.","HDP","HDPE","ADS","STEEL","SLIP"), 0.5:("D.I.P.","DIP","DI","D. TIL","D.TIL","Steel"),
-0.8:("RCP","RCSP","R.C.S.","MON","MON.","MON.C","MON. C","MCP","CIPP","MONO","MONO.","MONOLI","MONO.C","MONO-C","PRECAS","REINF.","PS","RMCP","CSP",
-"C.S.P.","CP","C.P.","CONC","CONC.","CON","CON.","CONCRE","CCP","ASBEST","ASBES","ABS","ACP","ACPP","A.C.P.","FRP","CONBRK"),0.9:("P.V.C.","PVC"),
-0.3:("CMP","COR.S","COR.I.","CORR."),1:("CIP","C.I.P.","C.I.","CI","IRON"),0.7:("Wood","CLAY","CT","TILE",
-"V.S.P.","VSP","VCP","T.C.P.","TCP"),1.3:("BRCK","BRICK","BRCK.","BRK","BRK.","B","BR.","BRKSTN","B.&S.","NCP","NCP OR")})
-
-# K VALUE PATCH
-# values from Joe Hoffman (Null val (assigned 0.8) accounted for in k value assignment section
-K1_patch = ({0.8:("brick_tunnel_liner_plate", "brick_conc_liner", "CONSTN", "VARIES", "UNSPEC", "stub", "STUB", "STUB _PLUG",
-"STUB&PLUG", "STUB & PLUG", "STUB]", "WOOD", "WOOD FLUME"), 0.75:("brick_fbr_liner")})
-
-K2_patch = ({0.8:("brick_tunnel_liner_plate", "CONSTN", "VARIES", "UNSPEC", "stub", "STUB", "STUB _PLUG",
-"STUB&PLUG", "STUB & PLUG", "STUB]", "WOOD", "WOOD FLUME"), 0.75:("brick_fbr_liner"), 1:("brick_conc_liner")})
-
+patch_dict = createMaterialPatch_dict(config.materialPatch_xls)
 
 # CORE
 
@@ -102,14 +44,14 @@ status("STARTING FRAGILITY EXTRACTION")
 
 # subset collection lines to pipes only
 status("Subsetting collection system to pipes only")
-pipes = arcpy.MakeFeatureLayer_management(collection_lines, "pipes", "LAYER_GROUP in ( 'SEWER PIPES' , 'STORM PIPES' )")
+pipes = arcpy.MakeFeatureLayer_management(config.collection_lines, "pipes", "LAYER_GROUP in ( 'SEWER PIPES' , 'STORM PIPES' )")
 
 print str(arcpy.GetCount_management(pipes)) + " pipes"
 
 # save copy of pipes to output
 datestamp = datetime.datetime.today().strftime('%Y%m%d')
 outfile = "fragility_city_" + datestamp
-full_outfile = os.path.join(output_gdb, "fragility_city_" + datestamp)
+full_outfile = os.path.join(config.resiliency_gdb, "fragility_city_" + datestamp)
 status("Copying pipes to output - called " + outfile)
 fragility_pipes = arcpy.CopyFeatures_management(pipes, full_outfile) # THIS IS A CITY-WIDE VERSION
 
@@ -118,8 +60,10 @@ status("Adding required fields")
 field_names = ("mean_depth", "PGV", "Liq_Prob", "PGD_LS", "PGD_Set", "PGD_Liq_Tot", "PGD_Landslide", "K1", "K2_Don",
 "RR_Don_PGV", "RR_Don_PGD_Liq", "RR_Don_PGD_Landslide", "RR_Don_FIN", "RR_Don_breaknum", "Decision")
 
+"""
 # separated out and not used for now (DCA - 1/31/2018)
 GS_field_names = ("K2_GS", "RR_GS_PGV", "RR_GS_PGD_Liq", "RR_GS_PGD_Landslide","RR_GS_FIN", "RR_GS_breaknum")
+"""
 
 for name in field_names:
     if name == "Liq_Prob" or name == "Decision":
@@ -140,13 +84,8 @@ with arcpy.da.UpdateCursor(fragility_pipes, ["COMPKEY","MATERIAL"]) as cursor:
 
 # patch backbone Null values using patch_dict
 status("Patching missing Materials in backbone segments")
-with arcpy.da.UpdateCursor(fragility_pipes,["COMPKEY", "MATERIAL"]) as cursor:
-    for row in cursor:
-        if row[0] in patch_dict:
-            if patch_dict[row[0]] != None: # if compkey is not Null
-                if patch_dict[row[0]][0] == row[1]: # if existing material is the same as the lookup old material
-                    row[1] = patch_dict[row[0]][1] # set material = to assumed material
-            cursor.updateRow(row)
+patch_Materials(fragility_pipes, patch_dict)
+
 
 # CONDITION AND EXTRACT DATA --------------------------------------------------------------------
 
@@ -223,7 +162,6 @@ with arcpy.da.UpdateCursor(fragility_pipes, ["PGD_Liq_Tot", "PGD_LS", "PGD_Set"]
             cursor.updateRow(row)
 
 # CALC VALUES ----------------------------------------------------------------------------------
-# GS components --------------------------------------------------------------------------------
 # calculate K values using materials and dictionarys
 status("Filling K1")
 with arcpy.da.UpdateCursor(fragility_pipes, ["MATERIAL", "K1"]) as cursor:
@@ -231,12 +169,12 @@ with arcpy.da.UpdateCursor(fragility_pipes, ["MATERIAL", "K1"]) as cursor:
             if row[0] is None or row[0] == " ":
                 row[1] = 0.8 # from Joe's list
             else:
-                if any(row[0] in val for val in DBBK1.values()) == 1: # if material in orig dict, use that k val
-                    val1 = [key for key, value in DBBK1.items() if row[0] in value][0]
+                if any(row[0] in val for val in config.DBBK1.values()) == 1: # if material in orig dict, use that k val
+                    val1 = [key for key, value in config.DBBK1.items() if row[0] in value][0]
                     if val1 != None or val1 != "" or val1 != " ":
                         row[1] = val1
-                elif any(row[0] in val for val in K1_patch.values()) == 1: # otherwise use the patch dict value
-                    val2 = [key for key, value in K1_patch.items() if row[0] in value][0]
+                elif any(row[0] in val for val in config.K1_patch.values()) == 1: # otherwise use the patch dict value
+                    val2 = [key for key, value in config.K1_patch.items() if row[0] in value][0]
                     if val2 != None or val2 != "" or val2 != " ":
                         row[1] = val2
             cursor.updateRow(row)
@@ -247,12 +185,12 @@ with arcpy.da.UpdateCursor(fragility_pipes, ["MATERIAL", "K2_Don"]) as cursor:
             if row[0] is None or row[0] == " ":
                 row[1] = 0.8 # from Joe's list
             else:
-                if any(row[0] in val for val in DBBK2.values()) == 1: # if material in orig dict, use that k val
-                    val1 = [key for key, value in DBBK2.items() if row[0] in value][0]
+                if any(row[0] in val for val in config.DBBK2.values()) == 1: # if material in orig dict, use that k val
+                    val1 = [key for key, value in config.DBBK2.items() if row[0] in value][0]
                     if val1 != None or val1 != "" or val1 != " ":
                         row[1] = val1
-                elif any(row[0] in val for val in K2_patch.values()) == 1: # otherwise use the patch dict value
-                    val2 = [key for key, value in K2_patch.items() if row[0] in value][0]
+                elif any(row[0] in val for val in config.K2_patch.values()) == 1: # otherwise use the patch dict value
+                    val2 = [key for key, value in config.K2_patch.items() if row[0] in value][0]
                     if val2 != None or val2 != "" or val2 != " ":
                         row[1] = val2
             cursor.updateRow(row)
@@ -262,21 +200,21 @@ status("Calculating RR_Don_PGV")
 with arcpy.da.UpdateCursor(fragility_pipes, ["RR_Don_PGV", "K1", "PGV"]) as cursor:
         for row in cursor:
             if row[1] is not None and row[2] is not None:
-                row[0] = RR_waveprop_Calc(row[1], row[2])
+                row[0] = config.RR_waveprop_Calc(row[1], row[2])
             cursor.updateRow(row)
 
 status("Calculating RR_Don_PGD_Liq")
 with arcpy.da.UpdateCursor(fragility_pipes, ["RR_Don_PGD_Liq", "K2_Don", "PGD_Liq_Tot"]) as cursor:
     for row in cursor:
         if row[1] is not None and row[2] is not None:
-            row[0] = RR_PGD_Calc(row[1], row[2])
+            row[0] = config.RR_PGD_Calc(row[1], row[2])
         cursor.updateRow(row)
 
 status("Calculating RR_Don_PGD_Landslide")
 with arcpy.da.UpdateCursor(fragility_pipes, ["RR_Don_PGD_Landslide", "K2_Don", "PGD_Landslide"]) as cursor:
     for row in cursor:
         if row[1] is not None and row[2] is not None:
-            row[0] = RR_PGD_Calc(row[1], row[2])
+            row[0] = config.RR_PGD_Calc(row[1], row[2])
         cursor.updateRow(row)
 
 # final calculations

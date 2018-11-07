@@ -13,6 +13,7 @@
 # to determine risk.
 #-------------------------------------------------------------------------------
 
+# REFACTOR THIS SO IT CAN BE APPLIED TO BOTH THE WB AND MJ RESULTS
 
 
 from util import status
@@ -26,6 +27,7 @@ fragility_city = os.path.join(resiliency_gdb, city_basename + city_date)
 
 status("STARTING PROCESS TO CREATE LANDSLIDE/ DEPTH FRAGILITY RESULT")
 
+"""
 # TODO - make copy its own separate function
 copy_path = fragility_city + "_compiled" # output feature class
 if arcpy.Exists(copy_path) == False:
@@ -34,6 +36,7 @@ if arcpy.Exists(copy_path) == False:
 else:
     status("Copy already exists - skipping copy process")
     fragility_compiled = copy_path
+"""
 
 # add required fields - RR_Don_FIN_landslide and breaknum_landslide
 add_fields = ['wLandslide_RR_Don_FIN', 'wLandslide_RR_Don_breaknum']
