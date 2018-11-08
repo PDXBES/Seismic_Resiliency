@@ -117,12 +117,10 @@ def Fragility():
                     row[0] = row[0]*12
                 cursor.updateRow(row)
 
-    # set PGD_Landslide value to 0 if = 4.8
-    # BETTER WATCH OUT FOR THIS MAGIC NUMBER CHANGING WITH FUTURE DATA INPUTS
     status("Re-setting lowest range Landslide values to 0")
     with arcpy.da.UpdateCursor(fragility_pipes, ["PGD_Landslide"]) as cursor:
             for row in cursor:
-                if row[0] == config.PGD_Landslide_val: # this is the actual value, not just 4.8, sort of kludgey for sure
+                if row[0] == config.PGD_Landslide_val:
                     row[0] = 0
                 cursor.updateRow(row)
 

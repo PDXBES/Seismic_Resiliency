@@ -19,6 +19,7 @@ import config, util
 arcpy.env.overwriteOutput = True
 
 def FragilityMacJac():
+
     # MATERIAL VALUE PATCH
     # creates a lookup dictionary from the Nulls spreadsheet
     # use to fill the MATERIAL field for the records that match the key val Compkeys

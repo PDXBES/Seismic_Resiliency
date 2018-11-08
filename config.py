@@ -48,7 +48,9 @@ def rateCalc(minval, maxval, rate): # rate needs 0.8 for 80% eg
 
 MJ_rate = 0.8 # value to assume within MacJac ranges
 
-PGD_Landslide_val = 4.800000000000001 # this val, extracted from raster, effective = 0
+PGD_Landslide_val = 4.800000000000001 # this val, extracted from raster, effectively = 0
+
+depth_limit = 20
 
 # Decision Logic constants
 pipe_depth = 30
