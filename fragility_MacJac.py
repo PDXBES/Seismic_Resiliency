@@ -14,6 +14,7 @@
 
 import arcpy, os, math, datetime, xlrd
 from util import updateDecisionField
+from util import status
 import config, util
 
 arcpy.env.overwriteOutput = True
@@ -24,7 +25,7 @@ def FragilityMacJac():
     # creates a lookup dictionary from the Nulls spreadsheet
     # use to fill the MATERIAL field for the records that match the key val Compkeys
     # use "if compkey = x and origval = y then set = to newval - this serves as a check that you're not overwriting valid values
-    patch_dict = createMaterialPatch_dict(config.materialPatch_xls)
+    patch_dict = util.createMaterialPatch_dict(config.materialPatch_xls)
 
 
     # CORE -------------------------------------------------------------------------
@@ -72,13 +73,13 @@ def FragilityMacJac():
         for row in cursor:
             if row[0] == 132037:
                 row[1] = "PVC"
-            elif row[0] ==490799:
+            elif row[0] == 490799:
                 row[1] = "CIPP"
             cursor.updateRow(row)
 
     # patch backbone Null values using patch_dict
     status("Patching missing Materials in backbone segments")
-    patch_Materials(fragility_pipes, patch_dict)
+    util.patch_Materials(fragility_pipes, patch_dict)
 
 
     # CONDITION AND EXTRACT DATA --------------------------------------------------------------------
@@ -119,11 +120,11 @@ def FragilityMacJac():
 
 
     # calculate K values using materials and dictionaries
-    calcValues(fragility_pipes)
+    util.calcValues(fragility_pipes)
 
 
     status("Updating Decision field")
-    updateDecisionField(fragility_pipes)
+    util.updateDecisionField(fragility_pipes, "PGD_Liq_Tot", "RR_Don_FIN", "PGD_Set")
 
 
     # -------------------------------------------------------------------------------------------------------------------

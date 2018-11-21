@@ -10,7 +10,7 @@
 #
 #-------------------------------------------------------------------------------
 
-import arcpy, os, datetime, config
+import arcpy, os, datetime, config, xlrd
 
 
 def status(msg):
@@ -295,7 +295,7 @@ def addLandslideDepth_fields(input_fc, field1, field2):
     # field1 = the '***_RR_Don_FIN' field
     # field2 = the '***_breaknum' field
 
-    status("Adding depth/landslide fields")
+    status("Adding depth/landslide fields to " + input_fc)
 
     # add required fields - RR_Don_FIN_landslide and breaknum_landslide
     addField_test(input_fc, field1)
@@ -303,17 +303,17 @@ def addLandslideDepth_fields(input_fc, field1, field2):
 
     status("Using depth limit of " + str(config.depth_limit))
     status("Updating ***_RR_Don_FIN field using largest of 2 PGV values that are NOT landslide where pipe is deeper than depth limit")
-    with arcpy.da.UpdateCursor(input_fc, [field1, "mean_depth", "RR_Don_PGD_Landslide", "RR_Don_PGD_Liq", "RR_Don_PGV"]) as cursor:
+    with arcpy.da.UpdateCursor(input_fc, [field1, "mean_depth", "RR_Don_PGD_Liq", "RR_Don_PGV"]) as cursor:
         for row in cursor:
             if row[1] >= config.depth_limit:
-                if row[3] is not None and row[4] is not None and row[3] > row[4]:
+                if row[2] is not None and row[3] is not None and row[2] > row[3]:
+                    row[0] = row[2]
+                elif row[2] is not None and row[3] is not None and row[3] > row[2]:
                     row[0] = row[3]
-                elif row[3] is not None and row[4] is not None and row[4] > row[3]:
-                    row[0] = row[4]
-                elif row[3] is not None and row[4] is None:
+                elif row[2] is not None and row[3] is None:
+                    row[0] = row[2]
+                elif row[2] is None and row[3] is not None:
                     row[0] = row[3]
-                elif row[3] is None and row[4] is not None:
-                    row[0] = row[4]
             cursor.updateRow(row)
 
     status("Updating ***_breaknum (aka Breaks per 1000')") # uses SRVY_LEN over Shape_Length if possible

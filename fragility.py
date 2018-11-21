@@ -22,21 +22,6 @@ arcpy.env.overwriteOutput = True
 
 def Fragility():
 
-    # save copy of pipes to output
-    datestamp = datetime.datetime.today().strftime('%Y%m%d')
-    outfile = "fragility_city_" + datestamp
-    full_outfile = os.path.join(config.resiliency_gdb, "fragility_city_" + datestamp)
-    status("Copying pipes to output - called " + outfile)
-    fragility_pipes = arcpy.CopyFeatures_management(pipes, full_outfile) # THIS IS A CITY-WIDE VERSION
-
-    # MATERIAL VALUE PATCH
-    # creates a lookup dictionary from the Nulls spreadsheet
-    # use to fill the MATERIAL field for the records that match the key val Compkeys
-    # use "if compkey = x and origval = y then set = to newval - this serves as a check that you're not overwriting valid values
-    patch_dict = createMaterialPatch_dict(config.materialPatch_xls)
-
-    # CORE
-
     status("STARTING FRAGILITY EXTRACTION")
 
     # subset collection lines to pipes only
@@ -44,6 +29,18 @@ def Fragility():
     pipes = arcpy.MakeFeatureLayer_management(config.collection_lines, "pipes", "LAYER_GROUP in ( 'SEWER PIPES' , 'STORM PIPES' )")
     print str(arcpy.GetCount_management(pipes)) + " pipes"
 
+    # save copy of pipes to output
+    datestamp = datetime.datetime.today().strftime('%Y%m%d')
+    outfile = "fragility_WB_" + datestamp
+    full_outfile = os.path.join(config.resiliency_gdb, outfile)
+    status("Copying pipes to output - called " + outfile)
+    fragility_pipes = arcpy.CopyFeatures_management(pipes, full_outfile) # THIS IS A CITY-WIDE VERSION
+
+    # MATERIAL VALUE PATCH
+    # creates a lookup dictionary from the Nulls spreadsheet
+    # use to fill the MATERIAL field for the records that match the key val Compkeys
+    # use "if compkey = x and origval = y then set = to newval - this serves as a check that you're not overwriting valid values
+    patch_dict = util.createMaterialPatch_dict(config.materialPatch_xls)
 
     # add all necessary fields
     util.addFields(fragility_pipes)
@@ -61,7 +58,7 @@ def Fragility():
 
     # patch backbone Null values using patch_dict
     status("Patching missing Materials in backbone segments")
-    patch_Materials(fragility_pipes, patch_dict)
+    util.patch_Materials(fragility_pipes, patch_dict)
 
 
     # CONDITION AND EXTRACT DATA --------------------------------------------------------------------
@@ -83,7 +80,7 @@ def Fragility():
     targetFC = fragility_pipes
     targetField = "Liq_Prob"
     ID = "COMPKEY"
-    overlapFC = PWB_Liq
+    overlapFC = config.PWB_Liq
     overlapField = "LiqExpl"
     result = arcpy.Intersect_analysis([targetFC,overlapFC],"in_memory\sect_result","NO_FID","","LINE")
     values={}
@@ -101,11 +98,11 @@ def Fragility():
 
     # these are aggregated (MAX value taken)
     status("Extracting PGD_LS values")
-    calcField_fromOverlap(fragility_pipes, "PGD_LS", "COMPKEY", PWB_LS, "LATERALSPREAD_80pct")
+    calcField_fromOverlap(fragility_pipes, "PGD_LS", "COMPKEY", config.PWB_LS, "LATERALSPREAD_80pct")
     status("Extracting PGD_Set values")
-    calcField_fromOverlap(fragility_pipes, "PGD_Set", "COMPKEY", PWB_GS, "Ground_Settlement_80pct")
+    calcField_fromOverlap(fragility_pipes, "PGD_Set", "COMPKEY", config.PWB_GS, "Ground_Settlement_80pct")
     status("Extracting PGD_Landslide values")
-    calcField_fromOverlap(fragility_pipes, "PGD_Landslide", "COMPKEY", PWB_LD, "DEF_FEET_80pct")
+    calcField_fromOverlap(fragility_pipes, "PGD_Landslide", "COMPKEY", config.PWB_LD, "DEF_FEET_80pct")
 
     # convert PGD field values from feet to inches
     status("Converting PGD values from feet to inches")
@@ -138,11 +135,11 @@ def Fragility():
 
 
     # calculate K values using materials and dictionaries
-    calcValues(fragility_pipes)
+    util.calcValues(fragility_pipes)
 
 
     status("Updating Decision field")
-    updateDecisionField(fragility_pipes, "PGD_Liq_Tot", "RR_Don_FIN", "PGD_Set")
+    util.updateDecisionField(fragility_pipes, "PGD_Liq_Tot", "RR_Don_FIN", "PGD_Set")
 
 
     status("FRAGILITY EXTRACTION COMPLETE")

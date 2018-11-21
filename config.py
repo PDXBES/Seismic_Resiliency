@@ -65,18 +65,19 @@ field_names = ("mean_depth", "PGV", "Liq_Prob", "PGD_LS", "PGD_Set", "PGD_Liq_To
 "RR_Don_PGV", "RR_Don_PGD_Liq", "RR_Don_PGD_Landslide", "RR_Don_FIN", "RR_Don_breaknum", "Decision")
 
 calc_fields = (['PGV', 'Liq_Prob', 'PGD_LS', 'PGD_Set', 'PGD_Liq_Tot', 'PGD_Landslide',
-'K1', 'K2_Don', 'RR_Don_PGV', 'RR_Don_PGD_Liq', 'RR_Don_PGD_Landslide', 'RR_Don_FIN', 'RR_Don_breaknum'])
+'K1', 'K2_Don', 'RR_Don_PGV', 'RR_Don_PGD_Liq', 'RR_Don_PGD_Landslide', 'RR_Don_FIN', 'RR_Don_breaknum',
+'wLandslide_RR_Don_FIN', 'wLandslide_RR_Don_breaknum'])
 
 # K VALUES
 DBBK1 = ({0.15:("H.D.P.","HDP","HDPE","ADS","STEEL","SLIP"), 0.5:("D.I.P.","DIP","DI","D. TIL","D.TIL","Steel","ASBEST","ASBES","ABS","ACP","ACPP","A.C.P.","FRP"),
 0.8:("RCP","RCSP","R.C.S.","MON","MON.","MON.C","MON. C","MCP","CIPP","MONO","MONO.","MONOLI","MONO.C","MONO-C","PRECAS","REINF.","PS","RMCP","CSP",
-"C.S.P.","CP","C.P.","CONC","CONC.","CON","CON.","CONCRE","CCP","CONBRK"),0.6:("P.V.C.","PVC"),0.3:("CMP","COR.S","COR.I.","CORR."),
+"C.S.P.","CP","C.P.","CONC","CONC.","CON","CON.","CONCRE","CCP","CONBRK"),0.6:("P.V.C.","PVC","FBR"),0.3:("CMP","COR.S","COR.I.","CORR."),
 1:("CIP","C.I.P.","C.I.","CI","IRON"),1.3:("NCP","NCP OR"),0.7:("Wood","CLAY","CT","TILE",
 "V.S.P.","VSP","VCP","T.C.P.","TCP","BRCK","BRICK","BRCK.","BRK","BRK.","B","BR.","BRKSTN","B.&S.")})
 
 DBBK2 = ({0.15:("H.D.P.","HDP","HDPE","ADS","STEEL","SLIP"), 0.5:("D.I.P.","DIP","DI","D. TIL","D.TIL","Steel"),
 0.8:("RCP","RCSP","R.C.S.","MON","MON.","MON.C","MON. C","MCP","CIPP","MONO","MONO.","MONOLI","MONO.C","MONO-C","PRECAS","REINF.","PS","RMCP","CSP",
-"C.S.P.","CP","C.P.","CONC","CONC.","CON","CON.","CONCRE","CCP","ASBEST","ASBES","ABS","ACP","ACPP","A.C.P.","FRP","CONBRK"),0.9:("P.V.C.","PVC"),
+"C.S.P.","CP","C.P.","CONC","CONC.","CON","CON.","CONCRE","CCP","ASBEST","ASBES","ABS","ACP","ACPP","A.C.P.","FRP","CONBRK"),0.9:("P.V.C.","PVC","FBR"),
 0.3:("CMP","COR.S","COR.I.","CORR."),1:("CIP","C.I.P.","C.I.","CI","IRON"),0.7:("Wood","CLAY","CT","TILE",
 "V.S.P.","VSP","VCP","T.C.P.","TCP"),1.3:("BRCK","BRICK","BRCK.","BRK","BRK.","B","BR.","BRKSTN","B.&S.","NCP","NCP OR")})
 

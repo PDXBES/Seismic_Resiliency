@@ -48,3 +48,9 @@ def FragilityStamper(compiled_fc, MJ_fc):
 
     status("PROCESS COMPLETE")
 
+
+# TESTING ----------------------------------------------------------------------
+# compiled_fc = r"\\besfile1\Resiliency_Plan\GIS\pgdb\Seismic_Analysis.gdb\fragility_city_20180213_compiled"
+# MJ_fc = r"\\besfile1\Resiliency_Plan\GIS\pgdb\Seismic_Analysis.gdb\fragility_MJA_backbone_20180207"
+# FragilityStamper(compiled_fc, MJ_fc)
+

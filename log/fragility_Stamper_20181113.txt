@@ -1,0 +1,82 @@
+
+STARTING PROCESS TO ADD MACJAC FRAGILITY RESULT : 11/13/2018 11:34:31 AM
+Adding and populating 'MJ_' fields : 11/13/2018 11:34:31 AM
+MJ_PGD_Set already exists - no field added : 11/13/2018 11:34:40 AM
+-- calculating MJ_PGD_Set : 11/13/2018 11:34:40 AM
+Source Record Count: 2887
+Target Record Count: 87557
+Match Count: 2887
+- Done : 11/13/2018 12:00:54 PM
+MJ_Liq_Prob already exists - no field added : 11/13/2018 12:00:54 PM
+-- calculating MJ_Liq_Prob : 11/13/2018 12:00:54 PM
+Source Record Count: 2887
+Target Record Count: 87557
+Match Count: 0
+- Done : 11/13/2018 12:20:10 PM
+MJ_RR_Don_breaknum already exists - no field added : 11/13/2018 12:20:10 PM
+-- calculating MJ_RR_Don_breaknum : 11/13/2018 12:20:10 PM
+Source Record Count: 2887
+Target Record Count: 87557
+Match Count: 2887
+- Done : 11/13/2018 12:38:55 PM
+MJ_PGD_Landslide already exists - no field added : 11/13/2018 12:38:55 PM
+-- calculating MJ_PGD_Landslide : 11/13/2018 12:38:55 PM
+Source Record Count: 2887
+Target Record Count: 87557
+Match Count: 2880
+- Done : 11/13/2018 12:58:13 PM
+MJ_RR_Don_PGD_Landslide already exists - no field added : 11/13/2018 12:58:13 PM
+-- calculating MJ_RR_Don_PGD_Landslide : 11/13/2018 12:58:13 PM
+Source Record Count: 2887
+Target Record Count: 87557
+Match Count: 2880
+- Done : 11/13/2018 1:18:33 PM
+MJ_K2_Don already exists - no field added : 11/13/2018 1:18:33 PM
+-- calculating MJ_K2_Don : 11/13/2018 1:18:33 PM
+Source Record Count: 2887
+Target Record Count: 87557
+Match Count: 2887
+- Done : 11/13/2018 1:37:28 PM
+MJ_PGV already exists - no field added : 11/13/2018 1:37:28 PM
+-- calculating MJ_PGV : 11/13/2018 1:37:28 PM
+Source Record Count: 2887
+Target Record Count: 87557
+Match Count: 2887
+- Done : 11/13/2018 1:55:56 PM
+MJ_K1 already exists - no field added : 11/13/2018 1:55:56 PM
+-- calculating MJ_K1 : 11/13/2018 1:55:56 PM
+Source Record Count: 2887
+Target Record Count: 87557
+Match Count: 2887
+- Done : 11/13/2018 2:14:01 PM
+MJ_PGD_Liq_Tot already exists - no field added : 11/13/2018 2:14:01 PM
+-- calculating MJ_PGD_Liq_Tot : 11/13/2018 2:14:01 PM
+Source Record Count: 2887
+Target Record Count: 87557
+Match Count: 2887
+- Done : 11/13/2018 2:32:48 PM
+MJ_RR_Don_PGV already exists - no field added : 11/13/2018 2:32:48 PM
+-- calculating MJ_RR_Don_PGV : 11/13/2018 2:32:48 PM
+Source Record Count: 2887
+Target Record Count: 87557
+Match Count: 2887
+- Done : 11/13/2018 2:51:14 PM
+MJ_RR_Don_PGD_Liq already exists - no field added : 11/13/2018 2:51:14 PM
+-- calculating MJ_RR_Don_PGD_Liq : 11/13/2018 2:51:14 PM
+Source Record Count: 2887
+Target Record Count: 87557
+Match Count: 2887
+- Done : 11/13/2018 3:10:51 PM
+MJ_PGD_LS already exists - no field added : 11/13/2018 3:10:51 PM
+-- calculating MJ_PGD_LS : 11/13/2018 3:10:51 PM
+Source Record Count: 2887
+Target Record Count: 87557
+Match Count: 2887
+- Done : 11/13/2018 3:30:06 PM
+MJ_RR_Don_FIN already exists - no field added : 11/13/2018 3:30:06 PM
+-- calculating MJ_RR_Don_FIN : 11/13/2018 3:30:06 PM
+Source Record Count: 2887
+Target Record Count: 87557
+Match Count: 2887
+- Done : 11/13/2018 3:49:46 PM
+PROCESS COMPLETE : 11/13/2018 3:49:46 PM

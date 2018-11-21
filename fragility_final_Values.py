@@ -23,7 +23,7 @@ def FragilityFinalValues(compiled_fc):
     #create dict with {original field: final field}
     fieldlist_FinalVal = {}
 
-    for field in config.calc_fields:
+    for field in config.calc_fields[:-2]:
         fieldlist_FinalVal[field] = "Final_" + field
 
     status("Adding 'Final_' fields")
@@ -43,7 +43,7 @@ def FragilityFinalValues(compiled_fc):
     prefixes = ("wLandslide_", "MJ_wLandslide_", "MJ_", "Final_")
     newlist = []
     fulllist = []
-    for field in config.calc_fields:
+    for field in config.calc_fields[:-2]:
         newlist.append(field)
         if field in ("RR_Don_FIN", "RR_Don_breaknum"):
             for item in prefixes:
